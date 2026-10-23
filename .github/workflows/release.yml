@@ -24,15 +24,37 @@ jobs:
         run: python3 scripts/smoke-test.py dist/ncdu-linux-amd64 --image rockylinux/rockylinux:10
       - name: Test Red Hat UBI 10
         run: python3 scripts/smoke-test.py dist/ncdu-linux-amd64 --image registry.access.redhat.com/ubi10/ubi-minimal:latest
+      - name: Install ARM user-mode emulator for testing
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends qemu-user
+      - name: Test 32-bit ARMv7 with QEMU
+        run: |
+          ulimit -c 0
+          python3 scripts/smoke-test.py dist/ncdu-linux-armv7 --arch armv7 --runner qemu-arm
       - uses: actions/upload-artifact@v4
         with:
-          name: ncdu-linux-amd64
+          name: ncdu-linux
           path: dist/*
           if-no-files-found: error
 
+  verify-arm64:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify checked-in binary checksums
+        run: sha256sum --check SHA256SUMS
+      - name: Test ARM64 on a native runner
+        run: python3 scripts/smoke-test.py ncdu-linux-arm64 --arch arm64
+      - name: Test ARM64 on Rocky Linux 10
+        run: python3 scripts/smoke-test.py ncdu-linux-arm64 --arch arm64 --image rockylinux/rockylinux:10
+      - name: Test ARM64 on Red Hat UBI 10
+        run: python3 scripts/smoke-test.py ncdu-linux-arm64 --arch arm64 --image registry.access.redhat.com/ubi10/ubi-minimal:latest
+
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: verify
+    needs: [verify, verify-arm64]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -40,7 +62,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          name: ncdu-linux-amd64
+          name: ncdu-linux
           path: dist
       - name: Publish verified release assets
         env:
@@ -49,5 +71,5 @@ jobs:
         run: |
           gh release create "$RELEASE_TAG" dist/* \
             --verify-tag \
-            --title "Portable ncdu $RELEASE_TAG (Linux amd64)" \
+            --title "Portable ncdu $RELEASE_TAG (Linux amd64, ARM64, ARMv7)" \
             --notes-file .github/release-notes.md

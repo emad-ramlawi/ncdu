@@ -1,8 +1,18 @@
-The unmodified official **ncdu 2.9.1** static executable for Linux amd64.
-Verified by scanning, export/import, and interactive terminal tests on the
-runner, Rocky Linux 10, and Red Hat UBI 10.
+The unmodified official **ncdu 2.9.1** static executables for Linux:
 
-Download **ncdu-linux-amd64**, rename it to `ncdu`, and run:
+- **ncdu-linux-amd64** for x86_64.
+- **ncdu-linux-arm64** for AArch64.
+- **ncdu-linux-armv7** for 32-bit ARMv7-A with VFPv3 (not ARMv6).
+
+All builds pass scanning, JSON export/import and browsing, configuration, and
+normal interactive terminal tests. ARM64 is tested on a native runner; ARMv7 is tested with QEMU.
+The amd64 and ARM64 builds also pass Rocky Linux 10 and Red Hat UBI 10 tests.
+
+**ARMv7 limitation:** browsing saved binary exports (`-O`) triggers an unaligned
+store and SIGBUS under QEMU; this is explicitly marked `XFAIL` in testing.
+Use JSON exports (`-o scan.json`) on ARMv7. Native ARMv7 hardware is unverified.
+
+Download the executable for your architecture, rename it to `ncdu`, and run:
 
 ```sh
 chmod +x ncdu
